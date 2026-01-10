@@ -1,81 +1,54 @@
-/* STEM12G - Updated Memories Logic
-   - Allows Notes-only uploads (Photo is optional)
-   - Fixes "Sealing" hang by adding error timeouts
-   - Ensures loading screen always hides
+/* STEM12G - Emergency Update 
+   - Forces an error message if Supabase hangs
+   - Photo is completely optional
 */
 
 const memoryGrid = document.getElementById('memoryGrid');
-const searchInput = document.getElementById('searchInput');
 const uploadForm = document.getElementById('uploadForm');
-const loadingLayer = document.getElementById('loadingLayer');
 
-let allMemories = [];
-
-// 1. FETCH MEMORIES
 async function fetchMemories() {
     try {
         const { data, error } = await supabase
             .from('classmates')
             .select('*')
-            .order('created_at', { ascending: true }); // Request: Earliest Upload First
+            .order('created_at', { ascending: true });
 
         if (error) throw error;
-
-        if (data && data.length > 0) {
-            allMemories = data;
-            renderCards(allMemories);
-        } else {
-            memoryGrid.innerHTML = `<p style="text-align:center; width:100%; margin-top:50px; color:#f4eee0; opacity:0.6;">The vault is empty. Be the first to seal a memory!</p>`;
-        }
+        renderCards(data || []);
     } catch (err) {
-        console.error("Database Connection Error:", err.message);
+        console.error("Fetch failed:", err.message);
     } finally {
-        // ALWAYS hide loading screen even if database is empty
-        setTimeout(() => {
-            loadingLayer.style.opacity = '0';
-            setTimeout(() => loadingLayer.style.display = 'none', 1000);
-        }, 1500);
+        document.getElementById('loadingLayer').style.display = 'none';
     }
 }
 
-// 2. RENDER CARDS (Photo is now optional)
 function renderCards(list) {
     memoryGrid.innerHTML = '';
+    if (list.length === 0) {
+        memoryGrid.innerHTML = '<p style="color:white; text-align:center; grid-column:1/-1;">No memories yet.</p>';
+        return;
+    }
     list.forEach(item => {
         const card = document.createElement('div');
         card.className = 'member-card';
-        
-        // Use a placeholder if no image was uploaded
-        const imageContent = item.image_url 
-            ? `<img src="${item.image_url}" alt="Memory">` 
-            : `<div style="height:250px; display:flex; align-items:center; justify-content:center; background:#eee; color:#999; font-size:0.8rem;">Note Only</div>`;
-
         card.innerHTML = `
-            <div class="photo-frame">${imageContent}</div>
+            <div class="photo-frame">
+                ${item.image_url ? `<img src="${item.image_url}">` : `<div style="padding:20px; color:#999;">No Photo</div>`}
+            </div>
             <h3 class="name-tag">${item.name}</h3>
-            <p class="date-tag">Date: ${item.memory_date}</p>
+            <p class="date-tag">${item.memory_date}</p>
             <p class="note-text">"${item.note}"</p>
         `;
         memoryGrid.appendChild(card);
     });
 }
 
-// 3. SEARCH LOGIC (Name or Date)
-searchInput.addEventListener('input', (e) => {
-    const val = e.target.value.toLowerCase();
-    const filtered = allMemories.filter(m => 
-        m.name.toLowerCase().includes(val) || 
-        (m.memory_date && m.memory_date.includes(val))
-    );
-    renderCards(filtered);
-});
-
-// 4. UPLOAD LOGIC (FIXED FOR "FOREVER SEALING")
 uploadForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
     const btn = document.getElementById('submitBtn');
-    btn.innerText = "SEALING...";
+    
+    // UI Feedback
+    btn.innerText = "ATTEMPTING...";
     btn.disabled = true;
 
     const file = document.getElementById('uFile').files[0];
@@ -83,46 +56,42 @@ uploadForm.addEventListener('submit', async (e) => {
     const date = document.getElementById('uDate').value;
     const note = document.getElementById('uNote').value;
 
-    let publicImageUrl = null;
+    let uploadedUrl = null;
 
     try {
-        // Step A: Upload Photo ONLY if one is selected
+        // STEP 1: UPLOAD PHOTO (If selected)
         if (file) {
-            const fileName = `${Date.now()}_${file.name}`;
-            const { data: sData, error: sErr } = await supabase.storage
+            btn.innerText = "UPLOADING PHOTO...";
+            const fName = `${Date.now()}-${file.name}`;
+            const { data, error: sErr } = await supabase.storage
                 .from('photos')
-                .upload(fileName, file);
-            
-            if (sErr) throw new Error("Storage Error: " + sErr.message);
+                .upload(fName, file);
 
-            const { data: urlData } = supabase.storage.from('photos').getPublicUrl(fileName);
-            publicImageUrl = urlData.publicUrl;
+            if (sErr) throw new Error("PHOTO ERROR: " + sErr.message);
+
+            const { data: urlData } = supabase.storage.from('photos').getPublicUrl(fName);
+            uploadedUrl = urlData.publicUrl;
         }
 
-        // Step B: Insert into Table
+        // STEP 2: SAVE TO DATABASE
+        btn.innerText = "SAVING NOTE...";
         const { error: dbErr } = await supabase.from('classmates').insert([
-            { 
-                name: name, 
-                memory_date: date, 
-                note: note, 
-                image_url: publicImageUrl // This will be null if no photo
-            }
+            { name, memory_date: date, note, image_url: uploadedUrl }
         ]);
 
-        if (dbErr) throw new Error("Database Error: " + dbErr.message);
+        if (dbErr) throw new Error("DATABASE ERROR: " + dbErr.message);
 
-        // Success!
+        // SUCCESS
+        alert("Memory Sealed Successfully!");
         location.reload();
 
     } catch (err) {
-        // If it fails, stop "Sealing" and show the error
-        alert("Upload Failed: " + err.message);
+        // THIS STOPS THE "FOREVER" HANG
+        alert(err.message);
         btn.innerText = "SEAL RECORD";
         btn.disabled = false;
     }
 });
 
-// Modal UI
 document.getElementById('openUploadBtn').onclick = () => document.getElementById('uploadModal').style.display = 'flex';
-
 fetchMemories();
