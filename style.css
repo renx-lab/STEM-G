@@ -1,0 +1,197 @@
+/* --- VINTAGE VARIABLES --- */
+:root {
+    --vintage-cream: #f4eee0;
+    --vintage-sepia: #704214;
+    --dark-wood: #1a120b; /* Deep brown wood texture color */
+    --paper-white: #faf9f6;
+    --text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+/* --- RESET & BASE --- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--dark-wood);
+    /* Subtle wood-like pattern */
+    background-image: url('https://www.transparenttextures.com/patterns/dark-wood.png');
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Special Elite', 'Courier New', serif;
+    overflow: hidden;
+    position: relative;
+}
+
+/* --- FILM GRAIN OVERLAY --- */
+.grain::before {
+    content: "";
+    position: fixed;
+    top: -100%; left: -100%; width: 300%; height: 300%;
+    background: url('https://www.transparenttextures.com/patterns/stardust.png');
+    opacity: 0.04;
+    pointer-events: none;
+    z-index: 10;
+    animation: grainAnimation 8s steps(10) infinite;
+}
+
+@keyframes grainAnimation {
+    0%, 100% { transform: translate(0, 0); }
+    10% { transform: translate(-5%, -5%); }
+    30% { transform: translate(-10%, 5%); }
+    50% { transform: translate(5%, 10%); }
+    70% { transform: translate(10%, 5%); }
+    90% { transform: translate(-5%, -10%); }
+}
+
+/* --- THE POLAROID CARD --- */
+.polaroid-card {
+    background: var(--paper-white);
+    padding: 20px 20px 50px 20px;
+    box-shadow: 10px 20px 40px rgba(0,0,0,0.8);
+    transform: rotate(-2deg); /* Initial tilt */
+    border-radius: 2px;
+    width: 340px;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.5s ease;
+    z-index: 5;
+    border: 1px solid #ddd;
+}
+
+.polaroid-card:hover {
+    transform: rotate(0deg) scale(1.03);
+}
+
+/* --- PHOTO AREA (TOP HALF) --- */
+.photo-area {
+    background: #111;
+    width: 100%;
+    height: 280px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: var(--vintage-cream);
+    position: relative;
+    border: 1px solid #000;
+    margin-bottom: 25px;
+    overflow: hidden;
+}
+
+.school-logo {
+    width: 85px;
+    height: auto;
+    margin-bottom: 15px;
+    filter: grayscale(0.4) sepia(0.4) brightness(1.1);
+    opacity: 0.9;
+    z-index: 2;
+}
+
+.vignette {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.8) 100%);
+    pointer-events: none;
+}
+
+.class-title {
+    font-size: 2.2rem;
+    letter-spacing: 4px;
+    text-shadow: var(--text-shadow);
+    z-index: 2;
+}
+
+.subtitle {
+    font-family: 'Caveat', cursive;
+    font-size: 1.3rem;
+    opacity: 0.8;
+    z-index: 2;
+}
+
+/* --- LOGIN FORM --- */
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.input-field input {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-bottom: 2px solid #ddd;
+    background: transparent;
+    font-family: 'Special Elite', serif;
+    font-size: 1rem;
+    outline: none;
+    text-align: center;
+    color: #333;
+    transition: border-color 0.3s;
+}
+
+.input-field input:focus {
+    border-bottom: 2px solid var(--vintage-sepia);
+}
+
+/* --- BUTTON --- */
+#loginBtn {
+    margin-top: 10px;
+    padding: 12px;
+    background: var(--vintage-sepia);
+    color: var(--vintage-cream);
+    border: none;
+    cursor: pointer;
+    font-family: 'Special Elite', serif;
+    font-size: 1rem;
+    box-shadow: 2px 2px 0px #3e2723;
+    transition: all 0.2s;
+}
+
+#loginBtn:active {
+    transform: translateY(2px);
+    box-shadow: 0px 0px 0px #3e2723;
+}
+
+#loginBtn:hover {
+    background: #5d3611;
+}
+
+/* --- FOOTER --- */
+footer {
+    position: fixed;
+    bottom: 20px;
+    width: 100%;
+    text-align: center;
+    color: rgba(244, 238, 224, 0.4);
+    font-size: 0.85rem;
+    pointer-events: none;
+}
+
+footer p {
+    letter-spacing: 2px;
+}
+
+/* --- ERROR SHAKE ANIMATION --- */
+.shake {
+    animation: shakeEffect 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes shakeEffect {
+    10%, 90% { transform: translate3d(-2px, 0, 0) rotate(-2deg); }
+    20%, 80% { transform: translate3d(3px, 0, 0) rotate(-1deg); }
+    30%, 50%, 70% { transform: translate3d(-5px, 0, 0) rotate(-3deg); }
+    40%, 60% { transform: translate3d(5px, 0, 0) rotate(-1deg); }
+}
+
+/* Mobile Adjustments */
+@media (max-width: 400px) {
+    .polaroid-card {
+        width: 90%;
+        padding: 15px 15px 40px 15px;
+    }
+    .class-title { font-size: 1.8rem; }
+}
