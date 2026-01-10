@@ -1,3 +1,7 @@
+/* STEM12G - memories.js
+   Logic for Gallery, Search, and Uploading to Supabase
+*/
+
 const memoryGrid = document.getElementById('memoryGrid');
 const searchInput = document.getElementById('searchInput');
 const uploadForm = document.getElementById('uploadForm');
@@ -5,28 +9,42 @@ const loadingLayer = document.getElementById('loadingLayer');
 
 let allMemories = [];
 
-// 1. Fetch from Supabase (Earliest Upload First)
+// 1. Fetch Memories from Supabase
 async function fetchMemories() {
-    const { data, error } = await supabase
-        .from('classmates')
-        .select('*')
-        .order('created_at', { ascending: true }); // Request: List by earliest upload
+    try {
+        // We order by 'created_at' to show the earliest uploads first
+        const { data, error } = await supabase
+            .from('classmates')
+            .select('*')
+            .order('created_at', { ascending: true });
 
-    if (!error) {
-        allMemories = data;
-        renderCards(allMemories);
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+            allMemories = data;
+            renderCards(allMemories);
+        } else {
+            // Display message if vault is empty
+            memoryGrid.innerHTML = `
+                <div class="typewriter-text" style="grid-column: 1/-1; margin-top: 50px;">
+                    The vault is currently empty. Be the first to seal a memory.
+                </div>`;
+        }
+    } catch (err) {
+        console.error("Database error:", err.message);
+    } finally {
+        // ALWAYS hide loading screen after attempt
+        setTimeout(() => {
+            loadingLayer.style.opacity = '0';
+            setTimeout(() => loadingLayer.style.display = 'none', 1000);
+        }, 1500);
     }
-    
-    // Hide Loading Screen
-    setTimeout(() => {
-        loadingLayer.style.opacity = '0';
-        setTimeout(() => loadingLayer.style.visibility = 'hidden', 1000);
-    }, 1500);
 }
 
-// 2. Render Cards to Grid
+// 2. Render Polaroid Cards
 function renderCards(list) {
     memoryGrid.innerHTML = '';
+    
     list.forEach(item => {
         const card = document.createElement('div');
         card.className = 'member-card';
@@ -42,55 +60,65 @@ function renderCards(list) {
     });
 }
 
-// 3. Search Bar Logic (Filter by Name or Date)
+// 3. Search Bar Logic (Filters Name or Date)
 searchInput.addEventListener('input', (e) => {
     const term = e.target.value.toLowerCase();
     const filtered = allMemories.filter(m => 
         m.name.toLowerCase().includes(term) || 
-        m.memory_date.includes(term)
+        (m.memory_date && m.memory_date.includes(term))
     );
     renderCards(filtered);
 });
 
-// 4. Handle Upload (Text + Photo)
+// 4. Handle Upload Form Submission
 uploadForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    
     const btn = document.getElementById('submitBtn');
-    btn.innerText = "Sealing into Vault...";
+    btn.innerText = "SEALING RECORD...";
     btn.disabled = true;
 
-    const file = document.getElementById('photoUpload').files[0];
-    const fileName = `${Date.now()}_${file.name}`;
+    const file = document.getElementById('uFile').files[0];
+    const name = document.getElementById('uName').value;
+    const date = document.getElementById('uDate').value;
+    const note = document.getElementById('uNote').value;
 
-    // Upload Photo to Supabase Storage
-    const { data: sData, error: sErr } = await supabase.storage
-        .from('photos')
-        .upload(fileName, file);
+    try {
+        // A. Upload Image to 'photos' bucket
+        const fileName = `${Date.now()}_${file.name}`;
+        const { data: sData, error: sErr } = await supabase.storage
+            .from('photos')
+            .upload(fileName, file);
 
-    if (sErr) return alert("Storage Error: " + sErr.message);
+        if (sErr) throw sErr;
 
-    // Get Image Public URL
-    const { data: urlData } = supabase.storage.from('photos').getPublicUrl(fileName);
+        // B. Get Public URL of the photo
+        const { data: urlData } = supabase.storage.from('photos').getPublicUrl(fileName);
 
-    // Insert Text Record into Database
-    const { error: dbErr } = await supabase.from('classmates').insert([{
-        name: document.getElementById('uploaderName').value,
-        memory_date: document.getElementById('memoryDate').value,
-        note: document.getElementById('uploaderNote').value,
-        image_url: urlData.publicUrl
-    }]);
+        // C. Insert Text Data into 'classmates' table
+        const { error: dbErr } = await supabase.from('classmates').insert([{
+            name: name,
+            memory_date: date,
+            note: note,
+            image_url: urlData.publicUrl
+        }]);
 
-    if (!dbErr) {
-        location.reload(); // Refresh to see the new earliest-first list
-    } else {
-        alert("Database Error: " + dbErr.message);
+        if (dbErr) throw dbErr;
+
+        // Success: Refresh page
+        location.reload();
+
+    } catch (err) {
+        alert("Action Failed: " + err.message);
+        btn.innerText = "SEAL RECORD";
         btn.disabled = false;
-        btn.innerText = "Seal into Vault";
     }
 });
 
-// Modal Controls
-document.getElementById('openUploadBtn').onclick = () => document.getElementById('uploadModal').style.display = 'flex';
-document.querySelector('.close-modal').onclick = () => document.getElementById('uploadModal').style.display = 'none';
+// Modal UI Controls
+document.getElementById('openUploadBtn').onclick = () => {
+    document.getElementById('uploadModal').style.display = 'flex';
+};
 
+// Start the process
 fetchMemories();
