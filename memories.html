@@ -3,44 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STEM12G | Memory Vault</title>
+    <title>STEM12G | Vault & Map</title>
     
-    <link rel="stylesheet" href="style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Caveat:wght@400;700&display=swap" rel="stylesheet">
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="database.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Caveat:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Responsive Map Container */
+        #schoolMap {
+            height: 300px;
+            width: 100%;
+            border: 5px solid var(--paper-white);
+            box-shadow: 10px 10px 20px rgba(0,0,0,0.5);
+            margin-bottom: 40px;
+            z-index: 5;
+        }
+
+        /* Improved Responsive Grid */
+        .memory-grid {
+            display: grid;
+            /* Adjusts automatically based on screen size */
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 30px;
+            padding: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .nav-content { flex-direction: column; gap: 10px; }
+            .search-box input { width: 100%; }
+            .memory-grid { grid-template-columns: 1fr; }
+        }
+    </style>
 </head>
 <body class="gallery-view">
-
     <div class="grain"></div>
 
     <div id="loadingLayer" class="loading-screen">
-        <div class="loading-content">
-            <img src="https://www.sccpag.edu.ph/wp-content/uploads/2022/02/cropped-logo-1.png" alt="SCC Logo" class="loading-logo">
-            <h1 class="class-title" style="margin-top: 15px; color: #f4eee0;">STEM12G</h1>
-            <p class="typewriter-text">Decrypting the Vault...</p>
-        </div>
+        <img src="https://www.sccpag.edu.ph/wp-content/uploads/2022/02/cropped-logo-1.png" class="loading-logo">
+        <p class="typewriter-text">Locating Memories...</p>
     </div>
 
     <header class="vault-nav">
         <div class="nav-content">
-            <img src="https://www.sccpag.edu.ph/wp-content/uploads/2022/02/cropped-logo-1.png" alt="SCC Logo" class="mini-logo">
-            
-            <div class="search-box">
-                <input type="text" id="searchInput" placeholder="Search by Name or Date (YYYY-MM-DD)..." autocomplete="off">
-            </div>
-
-            <button id="openUploadBtn" class="vintage-btn">+ Add Memory</button>
+            <img src="https://www.sccpag.edu.ph/wp-content/uploads/2022/02/cropped-logo-1.png" class="mini-logo">
+            <input type="text" id="searchInput" placeholder="Search name or date..." class="search-box">
+            <button id="openUploadBtn" class="vintage-btn">+ MEMORY</button>
         </div>
     </header>
 
     <main class="scrapbook-area">
-        <div class="sorting-indicator">
-            <p>Chronological Order: Earliest Uploads First</p>
-        </div>
+        <h2 class="class-title" style="text-align: center; margin-bottom: 15px; color: var(--vintage-cream);">Our Home: SCC</h2>
+        <div id="schoolMap"></div>
 
         <div class="memory-grid" id="memoryGrid">
             </div>
@@ -48,42 +64,34 @@
 
     <div id="uploadModal" class="modal">
         <div class="polaroid-card modal-content">
-            <div class="modal-header">
-                <h3 class="name-tag" style="margin: 0;">New Memory Entry</h3>
-                <span class="close-modal">&times;</span>
-            </div>
-            
-            <form id="uploadForm" class="upload-form">
-                <div class="input-group">
-                    <input type="text" id="uploaderName" placeholder="Your Full Name" required>
-                </div>
-
-                <div class="input-group">
-                    <label for="memoryDate" style="font-size: 0.7rem; color: #666; display: block; text-align: left;">Date of Memory:</label>
-                    <input type="date" id="memoryDate" required>
-                </div>
-
-                <div class="input-group">
-                    <textarea id="uploaderNote" placeholder="Write your memory or notes here..." required></textarea>
-                </div>
-                
-                <div class="file-section">
-                    <label class="custom-file-upload">
-                        <input type="file" id="photoUpload" accept="image/*" required>
-                        <span>Attach Photo Polaroid</span>
-                    </label>
-                </div>
-                
-                <button type="submit" id="submitBtn">Seal into Vault</button>
+            <h3 style="margin-bottom:15px; font-family: 'Special Elite';">New Entry</h3>
+            <form id="uploadForm">
+                <input type="text" id="uName" placeholder="Classmate Name" required>
+                <input type="date" id="uDate" required>
+                <textarea id="uNote" placeholder="Write your note..." required></textarea>
+                <label style="font-size: 0.7rem; display: block; margin-top: 10px;">Photo (Optional):</label>
+                <input type="file" id="uFile" accept="image/*">
+                <button type="submit" id="submitBtn" class="vintage-btn" style="width:100%; margin-top:20px;">SEAL RECORD</button>
+                <button type="button" onclick="document.getElementById('uploadModal').style.display='none'" style="width:100%; background:none; border:none; color:red; cursor:pointer; margin-top:10px;">Cancel</button>
             </form>
         </div>
     </div>
 
-    <footer>
-        <p>STEM12G Memory Vault • Created by Renz Nollora</p>
-    </footer>
-
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="memories.js"></script>
+    <script>
+        // Initialize Map for Saint Columban College, Sagun St.
+        // Approx coordinates for Sagun St, Pagadian City
+        const sccCoords = [7.8247, 123.4357]; 
+        const map = L.map('schoolMap').setView(sccCoords, 17);
 
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // Custom Icon or Marker
+        const marker = L.marker(sccCoords).addTo(map);
+        marker.bindPopup("<b>Saint Columban College</b><br>Sagun Street, Pagadian City").openPopup();
+    </script>
 </body>
 </html>
