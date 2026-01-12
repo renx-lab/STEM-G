@@ -1,12 +1,25 @@
-/* DB-CON.js 
-   STEM12G - Supabase Configuration
-*/
+/**
+ * STEM12G - Database Configuration
+ * This file establishes the link between your website and Supabase.
+ */
 
-const SUPABASE_URL = 'https://hrzgkljyqsomhjmuqddu.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_mOqHg-ZMch3GJo68W8eA5w_6wMWURzE'; // Your public key
+// 1. Define your Supabase Credentials
+const supabaseUrl = 'https://hrzgkljyqsomhjmuqddu.supabase.co';
+const supabaseKey = 'sb_publishable_mOqHg-ZMch3GJo68W8eA5w_6wMWURzE';
 
-// Initialize the Supabase Client
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// 2. Initialize the Supabase Client
+// We destructure 'createClient' from the global 'supabase' object loaded in HTML
+const { createClient } = supabase;
 
-// Exporting is not needed in plain HTML/JS, 
-// 'supabase' is now a global variable you can use in other scripts.
+// 3. Attach the client to the 'window' object
+// This ensures that memories.js and other files can use window.supabase
+window.supabase = createClient(supabaseUrl, supabaseKey);
+
+// 4. Connection Debugger
+console.log("--- STEM12G VAULT STATUS ---");
+if (window.supabase) {
+    console.log("✅ Supabase Client Initialized Successfully");
+    console.log("🔗 URL:", supabaseUrl);
+} else {
+    console.error("❌ Failed to initialize Supabase. Check your script order.");
+}
