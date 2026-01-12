@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STEM12G | Classmate Vault & Map</title>
+    <title>STEM12G | Private Vault</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="database.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Caveat:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
@@ -15,255 +14,292 @@
             --vintage-cream: #f4eee0;
             --vintage-sepia: #704214;
             --dark-wood: #1a120b;
-            --paper-white: #faf9f6;
+            --error-red: #ff4d4d;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            background-color: var(--dark-wood);
-            background-image: url('https://www.transparenttextures.com/patterns/dark-wood.png');
+            background: var(--dark-wood) url('https://www.transparenttextures.com/patterns/dark-wood.png');
             font-family: 'Special Elite', serif;
             color: var(--vintage-cream);
+            display: flex;
             min-height: 100vh;
         }
 
-        /* Loading Screen */
-        .loading-screen {
-            position: fixed; inset: 0; background: var(--dark-wood); z-index: 10000;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            transition: opacity 1s ease;
+        /* Side Navigation Menu */
+        .side-menu {
+            width: 250px;
+            background: rgba(0,0,0,0.8);
+            border-right: 2px solid var(--vintage-sepia);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            position: fixed;
+            height: 100%;
         }
-        .loading-logo { width: 100px; filter: brightness(2); animation: pulse 2s infinite; }
 
-        /* Navigation & Search */
-        .vault-nav {
-            position: sticky; top: 0; background: rgba(26, 18, 11, 0.95);
-            padding: 15px 20px; z-index: 1000; border-bottom: 2px solid var(--vintage-sepia);
+        .menu-logo { width: 80px; margin: 0 auto 20px; filter: sepia(1); }
+
+        .menu-link {
+            padding: 15px;
+            color: var(--vintage-cream);
+            text-decoration: none;
+            border-bottom: 1px solid #333;
+            cursor: pointer;
+            transition: 0.3s;
         }
-        .nav-content { 
-            max-width: 1200px; margin: 0 auto; 
-            display: flex; align-items: center; justify-content: space-between; gap: 20px;
+
+        .menu-link:hover { background: var(--vintage-sepia); color: white; }
+
+        /* Main Content Area */
+        .main-container {
+            margin-left: 250px;
+            width: calc(100% - 250px);
+            padding: 40px;
         }
-        .search-container { position: relative; flex-grow: 1; max-width: 400px; }
-        .search-box {
-            width: 100%; padding: 12px; border: none; font-family: 'Special Elite';
-            background: var(--paper-white); outline: none; border-radius: 4px;
+
+        /* Search Section */
+        .search-wrapper {
+            position: relative;
+            margin-bottom: 40px;
+            max-width: 600px;
         }
-        .search-results {
-            position: absolute; top: 100%; left: 0; width: 100%;
-            background: white; color: black; border-radius: 0 0 4px 4px;
-            max-height: 250px; overflow-y: auto; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+
+        .search-input {
+            width: 100%;
+            padding: 15px;
+            font-family: 'Special Elite';
+            font-size: 1.1rem;
+            border-radius: 5px;
+            border: none;
         }
-        .search-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; }
+
+        .search-dropdown {
+            position: absolute;
+            top: 100%;
+            width: 100%;
+            background: white;
+            color: black;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        }
+
+        .search-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+
         .search-item:hover { background: #f0f0f0; color: var(--vintage-sepia); }
 
-        /* Map Styling */
-        #schoolMap {
-            height: 350px; width: 100%; max-width: 1000px; margin: 20px auto;
-            border: 8px solid var(--paper-white); border-bottom-width: 40px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 5;
+        /* Error Message Box */
+        #errorNotice {
+            display: none;
+            background: var(--error-red);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 2px solid white;
         }
 
-        /* Polaroid Grid */
-        .memory-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 40px; padding: 40px 20px; max-width: 1200px; margin: 0 auto;
+        /* Classmate Grid */
+        .class-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 30px;
         }
+
         .member-card {
-            background: var(--paper-white); padding: 15px 15px 35px 15px;
-            box-shadow: 5px 5px 15px rgba(0,0,0,0.3); transform: rotate(-1deg);
-            transition: 0.3s; color: #333; cursor: pointer;
+            background: #fff;
+            padding: 15px 15px 40px;
+            color: #333;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.3);
+            transform: rotate(-1deg);
+            cursor: pointer;
         }
-        .member-card:hover { transform: rotate(0deg) scale(1.03); z-index: 10; }
-        .photo-frame { 
-            width: 100%; height: 250px; background: #ddd; 
-            overflow: hidden; border: 1px solid #999; 
+
+        .photo-frame {
+            height: 200px;
+            background: #e0e0e0;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
+
         .photo-frame img { width: 100%; height: 100%; object-fit: cover; }
-        .name-tag { margin-top: 15px; font-size: 1.2rem; border-bottom: 1px dashed #ccc; }
-        .note-text { font-family: 'Caveat', cursive; font-size: 1.4rem; margin-top: 10px; line-height: 1.2; }
 
         /* Modals */
         .modal {
-            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85);
-            z-index: 2000; align-items: center; justify-content: center; padding: 20px;
-        }
-        .modal-content { 
-            background: var(--paper-white); padding: 25px; width: 100%; max-width: 400px; 
-            color: #222; position: relative;
-        }
-        .modal-content input, .modal-content textarea {
-            width: 100%; margin: 10px 0; padding: 10px; font-family: 'Special Elite';
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+            z-index: 5000; align-items: center; justify-content: center;
         }
 
-        .vintage-btn {
-            background: var(--vintage-sepia); color: white; border: none;
-            padding: 10px 20px; cursor: pointer; font-family: 'Special Elite';
-        }
+        .modal-content { background: white; color: #222; padding: 30px; width: 400px; }
 
-        @media (max-width: 600px) {
-            .nav-content { flex-direction: column; }
-            #schoolMap { height: 250px; }
+        @media (max-width: 768px) {
+            .side-menu { width: 70px; padding: 10px; }
+            .menu-link span { display: none; }
+            .main-container { margin-left: 70px; width: calc(100% - 70px); }
         }
     </style>
 </head>
 <body>
 
-    <div id="loadingLayer" class="loading-screen">
-        <img src="https://www.sccpag.edu.ph/wp-content/uploads/2022/02/cropped-logo-1.png" class="loading-logo">
-        <p style="margin-top: 20px;">ACCESSING STEM-12G VAULT...</p>
-    </div>
+    <nav class="side-menu">
+        <img src="https://www.sccpag.edu.ph/wp-content/uploads/2022/02/cropped-logo-1.png" class="menu-logo">
+        <a class="menu-link" onclick="location.reload()"><span>🏠 Home</span></a>
+        <a class="menu-link" onclick="openSearch()"><span>🔍 Search Classmate</span></a>
+        <a class="menu-link" onclick="alert('Graduation Countdown: 120 Days')"><span>🎓 Events</span></a>
+        <a class="menu-link" href="https://www.sccpag.edu.ph/" target="_blank"><span>🌐 SCC Site</span></a>
+        <a class="menu-link" style="margin-top:auto; color:red;" href="index.html"><span>🚪 Logout</span></a>
+    </nav>
 
-    <header class="vault-nav">
-        <div class="nav-content">
-            <img src="https://www.sccpag.edu.ph/wp-content/uploads/2022/02/cropped-logo-1.png" width="50" style="filter: sepia(1);">
-            <div class="search-container">
-                <input type="text" id="searchInput" class="search-box" placeholder="Search Classmate Name...">
-                <div id="searchResults" class="search-results"></div>
-            </div>
-            <button onclick="openModal('uploadModal')" class="vintage-btn">+ NEW</button>
+    <main class="main-container">
+        
+        <div id="errorNotice">
+            <strong>⚠️ CONNECTION ERROR:</strong> 
+            <span id="errorMsg">The Vault cannot reach the database. Check your database.js and internet.</span>
         </div>
-    </header>
 
-    <h1 style="text-align: center; margin-top: 30px; font-size: 2.5rem;">OUR HOME</h1>
-    <div id="schoolMap"></div>
+        <h1 style="margin-bottom: 20px;">STEM12-G VAULT</h1>
 
-    <div class="memory-grid" id="memoryGrid"></div>
+        <div class="search-wrapper">
+            <input type="text" id="searchInput" class="search-input" placeholder="Type a name (ex: Renz, Shapayra...)">
+            <div id="resultsBox" class="search-dropdown"></div>
+        </div>
+
+        <div class="class-grid" id="mainGrid">
+            </div>
+    </main>
 
     <div id="editModal" class="modal">
         <div class="modal-content">
-            <h3 id="editTitle">Update Info</h3>
+            <h2 id="targetName" style="margin-bottom: 10px;">Edit</h2>
             <form id="editForm">
-                <input type="hidden" id="editId">
-                <textarea id="editNote" rows="4" placeholder="Update your note here..."></textarea>
-                <label style="font-size: 0.7rem;">Change Photo (Optional):</label>
-                <input type="file" id="editFile" accept="image/*">
-                <button type="submit" id="editSubmitBtn" class="vintage-btn" style="width: 100%;">SAVE RECORD</button>
-                <button type="button" onclick="closeModal('editModal')" style="width:100%; background:none; border:none; color:red; margin-top:10px; cursor:pointer;">Cancel</button>
+                <input type="hidden" id="targetId">
+                <textarea id="targetNote" rows="5" style="width: 100%; padding: 10px;" placeholder="Write a memory..."></textarea>
+                <p style="font-size: 0.8rem; margin: 10px 0;">Upload Polaroid (Optional):</p>
+                <input type="file" id="targetFile" accept="image/*" style="width: 100%;">
+                <button type="submit" id="saveBtn" class="menu-link" style="width: 100%; margin-top: 20px; background: var(--vintage-sepia); border:none;">SEAL CHANGES</button>
+                <button type="button" onclick="closeModal()" style="width: 100%; background: none; border: none; color: red; margin-top: 10px; cursor: pointer;">Cancel</button>
             </form>
         </div>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
     <script>
-        // --- LOGIC ---
-        let allClassmates = [];
-        const sccCoords = [7.8251, 123.4355]; // Saint Columban College, Sagun St.
+        let classmates = [];
 
-        // Initialize Map
-        const map = L.map('schoolMap').setView(sccCoords, 17);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-        L.marker(sccCoords).addTo(map).bindPopup("<b>Saint Columban College</b><br>Sagun St, Pagadian City").openPopup();
+        // 1. Start & Check Connection
+        async function init() {
+            if (typeof supabase === 'undefined') {
+                showError("Supabase is NOT defined. Check if database.js is linked correctly.");
+                return;
+            }
 
-        // 1. Fetch Classmates
-        async function loadData() {
             try {
                 const { data, error } = await supabase.from('classmates').select('*').order('name', { ascending: true });
                 if (error) throw error;
-                allClassmates = data;
-                renderCards(allClassmates);
+                
+                classmates = data;
+                render(classmates);
             } catch (err) {
-                console.error(err);
-            } finally {
-                document.getElementById('loadingLayer').style.opacity = '0';
-                setTimeout(() => document.getElementById('loadingLayer').style.display = 'none', 1000);
+                showError("Database Error: " + err.message);
             }
         }
 
-        // 2. Render Grid
-        function renderCards(list) {
-            const grid = document.getElementById('memoryGrid');
+        // 2. Render Cards
+        function render(list) {
+            const grid = document.getElementById('mainGrid');
             grid.innerHTML = '';
-            list.forEach(person => {
-                const card = document.createElement('div');
-                card.className = 'member-card';
-                card.onclick = () => openEditModal(person);
-                card.innerHTML = `
+            list.forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'member-card';
+                div.onclick = () => openEdit(p);
+                div.innerHTML = `
                     <div class="photo-frame">
-                        ${person.image_url ? `<img src="${person.image_url}">` : `<div style="padding:50px; text-align:center; color:#999;">No Photo</div>`}
+                        ${p.image_url ? `<img src="${p.image_url}">` : `<span>No Photo</span>`}
                     </div>
-                    <div class="name-tag">${person.name}</div>
-                    <div class="note-text">"${person.note || 'No note yet...'}"</div>
+                    <h3 style="margin-top:10px;">${p.name}</h3>
+                    <p style="font-family:'Caveat'; font-size:1.2rem;">${p.note || 'No note yet...'}</p>
                 `;
-                grid.appendChild(card);
+                grid.appendChild(div);
             });
         }
 
-        // 3. Fuzzy Search Logic
-        const searchInput = document.getElementById('searchInput');
-        const resultsDiv = document.getElementById('searchResults');
+        // 3. Search Closeness Logic
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const val = e.target.value.toLowerCase().trim();
+            const res = document.getElementById('resultsBox');
+            res.innerHTML = '';
 
-        searchInput.addEventListener('input', (e) => {
-            const term = e.target.value.toLowerCase();
-            resultsDiv.innerHTML = '';
-            
-            if (term.length > 0) {
-                const matches = allClassmates.filter(p => p.name.toLowerCase().includes(term));
+            if (val.length > 0) {
+                const matches = classmates.filter(p => p.name.toLowerCase().includes(val));
                 matches.forEach(m => {
                     const item = document.createElement('div');
                     item.className = 'search-item';
-                    item.innerText = m.name;
-                    item.onclick = () => {
-                        openEditModal(m);
-                        resultsDiv.style.display = 'none';
-                        searchInput.value = '';
-                    };
-                    resultsDiv.appendChild(item);
+                    item.innerHTML = `<strong>${m.name}</strong>`;
+                    item.onclick = () => openEdit(m);
+                    res.appendChild(item);
                 });
-                resultsDiv.style.display = matches.length ? 'block' : 'none';
+                res.style.display = matches.length ? 'block' : 'none';
             } else {
-                resultsDiv.style.display = 'none';
+                res.style.display = 'none';
             }
         });
 
-        // 4. Edit Modal Logic
-        function openEditModal(person) {
-            document.getElementById('editId').value = person.id;
-            document.getElementById('editTitle').innerText = `Editing: ${person.name}`;
-            document.getElementById('editNote').value = person.note || '';
+        // 4. Modal Functions
+        function openEdit(p) {
+            document.getElementById('targetId').value = p.id;
+            document.getElementById('targetName').innerText = p.name;
+            document.getElementById('targetNote').value = p.note || '';
             document.getElementById('editModal').style.display = 'flex';
+            document.getElementById('resultsBox').style.display = 'none';
         }
 
         document.getElementById('editForm').onsubmit = async (e) => {
             e.preventDefault();
-            const btn = document.getElementById('editSubmitBtn');
-            btn.innerText = "UPDATING...";
-            btn.disabled = true;
-
-            const id = document.getElementById('editId').value;
-            const note = document.getElementById('editNote').value;
-            const file = document.getElementById('editFile').files[0];
+            const btn = document.getElementById('saveBtn');
+            btn.innerText = "SAVING...";
+            
+            const id = document.getElementById('targetId').value;
+            const note = document.getElementById('targetNote').value;
+            const file = document.getElementById('targetFile').files[0];
 
             try {
-                let imgUrl = null;
+                let url = null;
                 if (file) {
-                    const fName = `update_${id}_${Date.now()}`;
+                    const fName = `img_${id}_${Date.now()}`;
                     await supabase.storage.from('photos').upload(fName, file);
                     const { data } = supabase.storage.from('photos').getPublicUrl(fName);
-                    imgUrl = data.publicUrl;
+                    url = data.publicUrl;
                 }
 
-                const upData = { note: note };
-                if (imgUrl) upData.image_url = imgUrl;
+                const upData = { note };
+                if (url) upData.image_url = url;
 
                 const { error } = await supabase.from('classmates').update(upData).eq('id', id);
                 if (error) throw error;
-
                 location.reload();
             } catch (err) {
                 alert(err.message);
-                btn.disabled = false;
-                btn.innerText = "SAVE RECORD";
+                btn.innerText = "SEAL CHANGES";
             }
         };
 
-        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
-        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        function showError(msg) {
+            document.getElementById('errorNotice').style.display = 'block';
+            document.getElementById('errorMsg').innerText = msg;
+        }
+        function closeModal() { document.getElementById('editModal').style.display = 'none'; }
+        function openSearch() { document.getElementById('searchInput').focus(); }
 
-        // Start
-        window.onload = loadData;
+        init();
     </script>
 </body>
 </html>
